@@ -1,0 +1,16 @@
+{
+  "name": "token-saver",
+  "description": "Reduce input token consumption in long Claude Code sessions through compact output, automatic conversation snapshots, and a topic-indexed Q&A cache",
+  "version": "0.1.0",
+  "author": {
+    "name": "kylening"
+  },
+  "license": "MIT",
+  "keywords": [
+    "token",
+    "cost-saving",
+    "context-management",
+    "snapshot",
+    "qa-cache"
+  ]
+}
