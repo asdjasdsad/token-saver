@@ -1,5 +1,5 @@
 ---
-description: 立即生成当前对话的快照笔记，写入 ~/.claude/token-saver/notes/，并提取关键 Q&A 入档到 qa-cache
+description: 立即生成当前对话的分层快照（detailed + distilled + index 三文件），并把代表性问答归档到概念知识库
 allowed-tools:
   - Read
   - Write
@@ -10,29 +10,59 @@ allowed-tools:
 
 # /token-saver-snapshot
 
-立即把当前对话浓缩成一份主题分区的 markdown 笔记。
+立即把当前对话浓缩成三层 markdown 文件：
+- `*.distilled.md` — 决策、结论、关键代码（长期保留，下次会话载入这个）
+- `*.detailed.md` — 调试过程、错误、放弃的方案（短期参考）
+- `*.index.md` — 两个文件的导航 + 主线/支线划分
 
 ## 执行步骤
 
-1. **读配置**：读 `~/.claude/token-saver/config.json`，如不存在用默认值。
-2. **识别主题**：根据当前对话上下文，确定一个主题 slug（kebab-case，如 `k8s-service`、`tokenhub-mu`）。如果对话跨越多个主题，主题取最主要的一个，并在笔记开头注明涉及的次要主题。
-3. **生成笔记**：写到 `~/.claude/token-saver/notes/<YYYY-MM-DD>-<topic-slug>.md`，使用 SKILL.md 中定义的快照模板：
-   - 核心概念（按用户实际讨论过的）
-   - 关键问答（保留用户原始问题的措辞，浓缩答案保留必要的表格/对比/类比）
-   - 用户表达过的理解（哪些是确认正确的、哪些是被纠正过的）
-   - 待补充
-4. **入档关键 Q&A**：
-   - 在 `~/.claude/token-saver/qa-cache/<topic>/` 创建 2-4 个代表性 Q&A 文件（命名 `<YYYY-MM-DD>-NNN.md`）。
-   - 更新或创建 `<topic>/_index.md`：每条一行 `[NNN] 一句话问题摘要`。
-   - 更新或创建全局 `qa-cache/index.md`：登记本次主题（如未登记过）+ 一行主要内容描述。
-5. **报告路径**：告诉用户：
-   - 笔记文件路径
-   - 涉及的主题
-   - 入档的 Q&A 数量
-   - 建议下一步：`/clear` 后在新会话中 `@<note-path>` 继续
+1. **解析数据目录**：按 SKILL.md 的 Step 1 解析 `<data_dir>`（环境感知）。
 
-## 注意
+2. **读配置**：`~/.token-saver/config.json`，取 `naming` 和 `snapshot.layered` 字段。
 
-- 笔记内容不要照抄对话原文，必须做浓缩（去客套、去复述、保留核心）。
-- 如果当前对话还没有可总结的实质内容（比如刚开始 1-2 轮闲聊），告诉用户"对话内容尚不足以生成快照"，不要强行生成。
-- 已存在同名笔记文件时，追加而非覆盖，并在文件头部加分隔线和新日期。
+3. **生成主题描述**：
+   - 根据当前对话内容，提炼一个 5-15 字的中文短描述
+   - 例：`endpoint列表页优化与docker部署`、`k8s-service路由排障`
+   - 文件名安全（去掉 `/ \ : * ? " < > |`）
+   - 长度不超过 `naming.max_filename_length`
+
+4. **生成时间戳**：`YYYY-MM-DD-HHMM`（精确到分）
+
+5. **构造文件路径**：
+   ```
+   <data_dir>/notes/<timestamp>-<描述>.distilled.md
+   <data_dir>/notes/<timestamp>-<描述>.detailed.md
+   <data_dir>/notes/<timestamp>-<描述>.index.md
+   ```
+
+6. **写三个文件**，按 SKILL.md 的"Distilled / Detailed / Index template"。
+   - distilled：决策、关键代码、概念定义、API、用户认知、待补充
+   - detailed：调试过程、错误、探索性问答、放弃的方案
+   - index：链接 + 主线/支线 + 推荐载入
+
+7. **概念归档（同步执行）**：
+   - 从对话中识别 1-3 个最重要的概念
+   - 对每个概念，按 SKILL.md 的 Step 4 流程，在 `<data_dir>/qa-cache/concepts/<concept>.md` 创建或追加
+   - 更新 `<data_dir>/qa-cache/index.md`
+
+8. **报告路径**：
+   ```
+   ✓ 快照已生成：
+     - 提炼版：<distilled-path>
+     - 详细版：<detailed-path>
+     - 索引：<index-path>
+   
+   ✓ 概念归档：
+     - 已追加到 <concept-A>.md (累计 N 次)
+     - 已新建概念 <concept-B>
+   
+   建议：/clear 后用 @<distilled-path> 继续，可显著降低后续 input token。
+   ```
+
+## 注意事项
+
+- 笔记内容必须做浓缩，不是照抄原文。distilled 尤其要紧凑。
+- 如果对话内容不足以生成快照（< 3 轮实质性交流），告诉用户"对话内容尚不足以生成快照"，不强行生成。
+- 如果同一时间戳已有同名文件（极罕见），追加 `-a3f` 短 hash 避免冲突。
+- 配置 `snapshot.layered: false` 时，退化为单文件模式（与 v0.1 兼容）：只生成一个 `<timestamp>-<描述>.md`。

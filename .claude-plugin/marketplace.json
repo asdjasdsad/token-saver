@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "token-saver",
-      "description": "Reduce input token consumption in long Claude Code sessions through compact output, automatic conversation snapshots, and a topic-indexed Q&A cache",
+      "description": "Reduce input token consumption in long Claude Code / CodeBuddy sessions through compact output, layered conversation snapshots (detailed + distilled), selective export, and a concept-organized cross-session Q&A knowledge base",
       "author": {
         "name": "asdjasdsad"
       },

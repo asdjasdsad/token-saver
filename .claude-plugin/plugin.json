@@ -1,9 +1,9 @@
 {
   "name": "token-saver",
-  "description": "Reduce input token consumption in long Claude Code sessions through compact output, automatic conversation snapshots, and a topic-indexed Q&A cache",
-  "version": "0.1.0",
+  "description": "Reduce input token consumption in long Claude Code / CodeBuddy sessions through compact output, layered conversation snapshots (detailed + distilled), selective export, and a concept-organized cross-session Q&A knowledge base",
+  "version": "0.2.0",
   "author": {
-    "name": "kylening"
+    "name": "asdjasdsad"
   },
   "license": "MIT",
   "keywords": [
